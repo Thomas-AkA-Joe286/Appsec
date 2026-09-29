@@ -1,11 +1,25 @@
 pipeline {
     agent any
+
     stages {
-        stage('Build') {
+        stage('Install Dependencies') {
             steps {
-            sh 'docker build --pull --rm -f "Dockerfile" -t blog:latest "."'
+                sh 'npm ci'
             }
         }
+
+        stage('Unit Tests') {
+            steps {
+                sh 'npm test'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'docker build --pull --rm -f "Dockerfile" -t blog:latest "."'
+            }
+        }
+
         stage('Trivy Scan') {
             steps {
                 sh '''
@@ -17,14 +31,16 @@ pipeline {
                 '''
             }
         }
+
         stage('OWASP Dependency Check') {
             steps {
                 dependencyCheck(
-                odcInstallation: 'OWASP-DC',
-                additionalArguments: '--scan .'
+                    odcInstallation: 'OWASP-DC',
+                    additionalArguments: '--scan .'
                 )
             }
         }
+
         stage('Run') {
             steps {
                 sh 'docker stop blog || true'
@@ -33,6 +49,7 @@ pipeline {
                 sh 'sleep 5'
             }
         }
+
         stage('Nikto Scan') {
             steps {
                 sh '''
